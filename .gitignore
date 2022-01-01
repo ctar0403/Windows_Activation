@@ -1,0 +1,52 @@
+# CMake build trees and generated files
+/build/
+/out/
+/cmake-build-*/
+CMakeCache.txt
+CMakeFiles/
+CTestTestfile.cmake
+cmake_install.cmake
+compile_commands.json
+Testing/
+
+# Visual Studio and MSBuild
+/.vs/
+*.sln
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.vcxproj
+*.vcxproj.filters
+*.vcxproj.user
+*.VC.db
+*.VC.opendb
+ipch/
+x64/
+Debug/
+Release/
+RelWithDebInfo/
+MinSizeRel/
+
+# Compiled artifacts
+*.exe
+*.dll
+*.lib
+*.exp
+*.obj
+*.o
+*.pdb
+*.ilk
+*.idb
+*.res
+
+# Editor and operating-system files
+/.vscode/
+/.idea/
+*.swp
+*.tmp
+*.bak
+Thumbs.db
+Desktop.ini
+.DS_Store
+
