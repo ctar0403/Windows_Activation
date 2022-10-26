@@ -37,9 +37,12 @@ private:
     HINSTANCE instance_{};
     HWND window_{};
     HFONT font_{};
+    HFONT titleFont_{};
+    HFONT statusFont_{};
     std::thread worker_;
     std::atomic_bool closing_{};
     bool busy_{};
+    COLORREF licenseColor_{RGB(80, 80, 80)};
     std::optional<LicenseSnapshot> lastSnapshot_;
     std::optional<ActivationError> lastError_;
 };

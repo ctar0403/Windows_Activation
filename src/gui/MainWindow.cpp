@@ -6,6 +6,7 @@
 #include "gui/resource.h"
 
 #include <Windows.h>
+#include <commctrl.h>
 #include <shellapi.h>
 
 #include <array>
@@ -40,6 +41,12 @@ MainWindow::~MainWindow() {
     if (font_ != nullptr) {
         DeleteObject(font_);
     }
+    if (titleFont_ != nullptr) {
+        DeleteObject(titleFont_);
+    }
+    if (statusFont_ != nullptr) {
+        DeleteObject(statusFont_);
+    }
 }
 
 bool MainWindow::Create(int showCommand) {
@@ -48,7 +55,7 @@ bool MainWindow::Create(int showCommand) {
     windowClass.hInstance = instance_;
     windowClass.hCursor = LoadCursorW(nullptr, IDC_ARROW);
     windowClass.hIcon = LoadIconW(nullptr, IDI_APPLICATION);
-    windowClass.hbrBackground = reinterpret_cast<HBRUSH>(COLOR_WINDOW + 1);
+    windowClass.hbrBackground = GetSysColorBrush(COLOR_BTNFACE);
     windowClass.lpszClassName = kWindowClass;
     windowClass.hIconSm = windowClass.hIcon;
     if (RegisterClassExW(&windowClass) == 0) {
@@ -57,7 +64,7 @@ bool MainWindow::Create(int showCommand) {
 
     window_ = CreateWindowExW(
         0, kWindowClass, kWindowTitle, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-        CW_USEDEFAULT, CW_USEDEFAULT, 800, 600, nullptr, nullptr, instance_, this);
+        CW_USEDEFAULT, CW_USEDEFAULT, 820, 660, nullptr, nullptr, instance_, this);
     if (window_ == nullptr) {
         return false;
     }
@@ -105,7 +112,7 @@ LRESULT MainWindow::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
 
         case WM_GETMINMAXINFO: {
             auto* info = reinterpret_cast<MINMAXINFO*>(lParam);
-            info->ptMinTrackSize = {700, 480};
+            info->ptMinTrackSize = {720, 620};
             return 0;
         }
 
@@ -158,6 +165,18 @@ LRESULT MainWindow::HandleMessage(UINT message, WPARAM wParam, LPARAM lParam) {
             return 0;
         }
 
+        case WM_CTLCOLORSTATIC: {
+            const HDC device = reinterpret_cast<HDC>(wParam);
+            const HWND control = reinterpret_cast<HWND>(lParam);
+            SetBkMode(device, TRANSPARENT);
+            if (control == GetDlgItem(window_, IDC_LICENSE_VALUE)) {
+                SetTextColor(device, licenseColor_);
+            } else {
+                SetTextColor(device, GetSysColor(COLOR_WINDOWTEXT));
+            }
+            return reinterpret_cast<LRESULT>(GetSysColorBrush(COLOR_BTNFACE));
+        }
+
         case WM_DESTROY:
             closing_.store(true);
             PostQuitMessage(0);
@@ -174,31 +193,55 @@ void MainWindow::CreateControls() {
     if (SystemParametersInfoW(SPI_GETNONCLIENTMETRICS, sizeof(metrics), &metrics,
                               0)) {
         font_ = CreateFontIndirectW(&metrics.lfMessageFont);
+
+        LOGFONTW title = metrics.lfMessageFont;
+        title.lfHeight = -24;
+        title.lfWeight = FW_SEMIBOLD;
+        titleFont_ = CreateFontIndirectW(&title);
+
+        LOGFONTW status = metrics.lfMessageFont;
+        status.lfHeight = -18;
+        status.lfWeight = FW_SEMIBOLD;
+        statusFont_ = CreateFontIndirectW(&status);
     }
 
-    const DWORD labelStyle = WS_TABSTOP | SS_LEFT;
+    const DWORD labelStyle = SS_LEFT;
     const std::array controls{
-        AddControl(window_, 0, L"STATIC", L"Windows:", labelStyle, -1),
+        AddControl(window_, 0, L"STATIC", L"Windows activation", labelStyle,
+                   IDC_HEADER),
+        AddControl(window_, 0, L"STATIC",
+                   L"Check this PC's genuine Windows license and open official activation tools.",
+                   labelStyle, IDC_SUBTITLE),
+        AddControl(window_, 0, L"BUTTON", L"License status", BS_GROUPBOX,
+                   IDC_STATUS_GROUP),
+        AddControl(window_, 0, L"STATIC", L"Windows", labelStyle,
+                   IDC_WINDOWS_LABEL),
         AddControl(window_, 0, L"STATIC", L"Not checked", labelStyle,
                    IDC_WINDOWS_VALUE),
-        AddControl(window_, 0, L"STATIC", L"OS build:", labelStyle, -1),
+        AddControl(window_, 0, L"STATIC", L"OS build", labelStyle,
+                   IDC_BUILD_LABEL),
         AddControl(window_, 0, L"STATIC", L"Unknown", labelStyle,
                    IDC_BUILD_VALUE),
-        AddControl(window_, 0, L"STATIC", L"License:", labelStyle, -1),
+        AddControl(window_, 0, L"STATIC", L"License", labelStyle,
+                   IDC_LICENSE_LABEL),
         AddControl(window_, 0, L"STATIC", L"Unknown", labelStyle,
                    IDC_LICENSE_VALUE),
-        AddControl(window_, 0, L"STATIC", L"Partial key:", labelStyle, -1),
+        AddControl(window_, 0, L"STATIC", L"Partial key", labelStyle,
+                   IDC_PARTIAL_KEY_LABEL),
         AddControl(window_, 0, L"STATIC", L"Not available", labelStyle,
                    IDC_PARTIAL_KEY_VALUE),
-        AddControl(window_, 0, L"STATIC", L"Reported channel:", labelStyle, -1),
+        AddControl(window_, 0, L"STATIC", L"Reported channel", labelStyle,
+                   IDC_CHANNEL_LABEL),
         AddControl(window_, 0, L"STATIC", L"Unknown", labelStyle,
                    IDC_CHANNEL_VALUE),
         AddControl(window_, 0, L"BUTTON", L"Refresh status", WS_TABSTOP | BS_PUSHBUTTON,
                    IDC_REFRESH),
         AddControl(window_, 0, L"BUTTON", L"Activate existing license",
                    WS_TABSTOP | BS_PUSHBUTTON, IDC_ACTIVATE_EXISTING),
-        AddControl(window_, 0, L"STATIC", L"Enter a product key you already own:",
-                   labelStyle, -1),
+        AddControl(window_, 0, L"BUTTON", L"Product key", BS_GROUPBOX,
+                   IDC_KEY_GROUP),
+        AddControl(window_, 0, L"STATIC", L"Enter a product key you already own",
+                   labelStyle, IDC_KEY_PROMPT),
         AddControl(window_, WS_EX_CLIENTEDGE, L"EDIT", L"",
                    WS_TABSTOP | ES_AUTOHSCROLL | ES_PASSWORD, IDC_PRODUCT_KEY),
         AddControl(window_, 0, L"BUTTON", L"Show", WS_TABSTOP | BS_AUTOCHECKBOX,
@@ -206,7 +249,15 @@ void MainWindow::CreateControls() {
         AddControl(window_, 0, L"BUTTON", L"Install key && activate",
                    WS_TABSTOP | BS_DEFPUSHBUTTON, IDC_INSTALL_ACTIVATE),
         AddControl(window_, 0, L"STATIC",
-                   L"Ready. Activation changes require administrator approval.",
+                   L"Use a genuine 25-character key that matches this Windows edition.",
+                   labelStyle, IDC_KEY_HINT),
+        AddControl(window_, 0, L"STATIC",
+                   L"Preview build: activation actions are disabled until the secure elevated helper is complete.",
+                   labelStyle, IDC_PREVIEW_NOTE),
+        AddControl(window_, 0, L"BUTTON", L"Activity", BS_GROUPBOX,
+                   IDC_ACTIVITY_GROUP),
+        AddControl(window_, 0, L"STATIC",
+                   L"Checking Windows status…",
                    labelStyle, IDC_PROGRESS),
         AddControl(window_, 0, L"BUTTON", L"View diagnostics",
                    WS_TABSTOP | BS_PUSHBUTTON, IDC_DIAGNOSTICS),
@@ -222,61 +273,87 @@ void MainWindow::CreateControls() {
     for (const HWND control : controls) {
         ApplyFont(control);
     }
+    if (titleFont_ != nullptr) {
+        SendMessageW(GetDlgItem(window_, IDC_HEADER), WM_SETFONT,
+                     reinterpret_cast<WPARAM>(titleFont_), TRUE);
+    }
+    if (statusFont_ != nullptr) {
+        SendMessageW(GetDlgItem(window_, IDC_LICENSE_VALUE), WM_SETFONT,
+                     reinterpret_cast<WPARAM>(statusFont_), TRUE);
+    }
     SendMessageW(GetDlgItem(window_, IDC_PRODUCT_KEY), EM_SETLIMITTEXT, 64, 0);
+    SendMessageW(GetDlgItem(window_, IDC_PRODUCT_KEY), EM_SETCUEBANNER, TRUE,
+                 reinterpret_cast<LPARAM>(L"XXXXX-XXXXX-XXXXX-XXXXX-XXXXX"));
     EnableWindow(GetDlgItem(window_, IDC_ACTIVATE_EXISTING), FALSE);
     EnableWindow(GetDlgItem(window_, IDC_INSTALL_ACTIVATE), FALSE);
 }
 
 void MainWindow::LayoutControls(int width, int height) {
     const int margin = 24;
-    const int rowHeight = 24;
-    const int labelWidth = 145;
-    const int valueLeft = margin + labelWidth;
-    const int valueWidth = width - valueLeft - margin;
+    const int contentWidth = width - 2 * margin;
+    const int labelWidth = 138;
+    const int valueLeft = margin + 24 + labelWidth;
+    const int valueWidth = width - valueLeft - margin - 24;
 
-    const std::array<int, 5> valueIds{
-        IDC_WINDOWS_VALUE, IDC_BUILD_VALUE, IDC_LICENSE_VALUE,
-        IDC_PARTIAL_KEY_VALUE, IDC_CHANNEL_VALUE};
-    int y = 24;
+    MoveWindow(GetDlgItem(window_, IDC_HEADER), margin, 18, contentWidth - 90, 32,
+               TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_SUBTITLE), margin, 52, contentWidth, 24,
+               TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_ABOUT), width - margin - 76, 20, 76, 28,
+               TRUE);
+
+    const int statusTop = 88;
+    MoveWindow(GetDlgItem(window_, IDC_STATUS_GROUP), margin, statusTop,
+               contentWidth, 196, TRUE);
+    const std::array<int, 5> labelIds{IDC_WINDOWS_LABEL, IDC_BUILD_LABEL,
+                                      IDC_LICENSE_LABEL, IDC_PARTIAL_KEY_LABEL,
+                                      IDC_CHANNEL_LABEL};
+    const std::array<int, 5> valueIds{IDC_WINDOWS_VALUE, IDC_BUILD_VALUE,
+                                      IDC_LICENSE_VALUE, IDC_PARTIAL_KEY_VALUE,
+                                      IDC_CHANNEL_VALUE};
+    int row = statusTop + 28;
     for (std::size_t index = 0; index < valueIds.size(); ++index) {
-        const auto labels = std::array{L"Windows:", L"OS build:", L"License:",
-                                       L"Partial key:", L"Reported channel:"};
-        HWND label = FindWindowExW(window_, nullptr, L"STATIC", labels[index]);
-        MoveWindow(label, margin, y, labelWidth, rowHeight, TRUE);
-        MoveWindow(GetDlgItem(window_, valueIds[index]), valueLeft, y, valueWidth,
-                   rowHeight, TRUE);
-        y += 30;
+        MoveWindow(GetDlgItem(window_, labelIds[index]), margin + 24, row,
+                   labelWidth, 24, TRUE);
+        MoveWindow(GetDlgItem(window_, valueIds[index]), valueLeft, row,
+                   valueWidth, 24, TRUE);
+        row += 28;
     }
+    MoveWindow(GetDlgItem(window_, IDC_REFRESH), margin + 24, statusTop + 154,
+               132, 30, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_ACTIVATE_EXISTING), margin + 168,
+               statusTop + 154, 202, 30, TRUE);
 
-    MoveWindow(GetDlgItem(window_, IDC_ABOUT), width - margin - 80, 18, 80, 28,
+    const int keyTop = statusTop + 208;
+    MoveWindow(GetDlgItem(window_, IDC_KEY_GROUP), margin, keyTop, contentWidth,
+               150, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_KEY_PROMPT), margin + 24, keyTop + 26,
+               contentWidth - 48, 22, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_PRODUCT_KEY), margin + 24, keyTop + 52,
+               contentWidth - 48 - 88, 30, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_SHOW_KEY), width - margin - 24 - 78,
+               keyTop + 52, 78, 30, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_KEY_HINT), margin + 24, keyTop + 88,
+               contentWidth - 260, 22, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_INSTALL_ACTIVATE), width - margin - 24 - 196,
+               keyTop + 86, 196, 32, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_PREVIEW_NOTE), margin + 24, keyTop + 118,
+               contentWidth - 48, 22, TRUE);
+
+    const int activityTop = keyTop + 164;
+    const int footerTop = height - 58;
+    MoveWindow(GetDlgItem(window_, IDC_ACTIVITY_GROUP), margin, activityTop,
+               contentWidth, (std::max)(58, footerTop - activityTop - 10), TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_PROGRESS), margin + 24, activityTop + 26,
+               contentWidth - 48, (std::max)(26, footerTop - activityTop - 38),
                TRUE);
-    MoveWindow(GetDlgItem(window_, IDC_REFRESH), margin, y + 8, 130, 32, TRUE);
-    MoveWindow(GetDlgItem(window_, IDC_ACTIVATE_EXISTING), margin + 142, y + 8, 205,
-               32, TRUE);
-    y += 62;
 
-    HWND prompt = FindWindowExW(window_, nullptr, L"STATIC",
-                                L"Enter a product key you already own:");
-    MoveWindow(prompt, margin, y, width - 2 * margin, rowHeight, TRUE);
-    y += 28;
-
-    MoveWindow(GetDlgItem(window_, IDC_PRODUCT_KEY), margin, y,
-               width - 2 * margin - 94, 30, TRUE);
-    MoveWindow(GetDlgItem(window_, IDC_SHOW_KEY), width - margin - 82, y, 82, 30,
+    MoveWindow(GetDlgItem(window_, IDC_DIAGNOSTICS), margin, footerTop, 142, 30,
                TRUE);
-    y += 42;
-    MoveWindow(GetDlgItem(window_, IDC_INSTALL_ACTIVATE), margin, y, 190, 34, TRUE);
-    y += 54;
-    MoveWindow(GetDlgItem(window_, IDC_PROGRESS), margin, y, width - 2 * margin,
-               48, TRUE);
-
-    const int bottom = height - margin;
-    MoveWindow(GetDlgItem(window_, IDC_PRIVACY_NOTE), margin, bottom - 28,
-               width - 2 * margin, rowHeight, TRUE);
-    MoveWindow(GetDlgItem(window_, IDC_DIAGNOSTICS), margin, bottom - 74, 150, 32,
-               TRUE);
-    MoveWindow(GetDlgItem(window_, IDC_OPEN_SETTINGS), margin + 162, bottom - 74,
-               255, 32, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_OPEN_SETTINGS), margin + 154, footerTop,
+               246, 30, TRUE);
+    MoveWindow(GetDlgItem(window_, IDC_PRIVACY_NOTE), margin, footerTop + 36,
+               contentWidth, 22, TRUE);
 }
 
 void MainWindow::ApplyFont(HWND control) const {
@@ -304,6 +381,8 @@ void MainWindow::StartRefresh() {
         worker_.join();
     }
     SetBusy(true);
+    licenseColor_ = RGB(80, 80, 80);
+    InvalidateRect(GetDlgItem(window_, IDC_LICENSE_VALUE), nullptr, TRUE);
     SetWindowTextW(GetDlgItem(window_, IDC_PROGRESS), L"Checking system and license status…");
 
     worker_ = std::thread([this] {
@@ -340,11 +419,13 @@ void MainWindow::FinishRefresh(SnapshotQueryResult result) {
     SetWindowTextW(GetDlgItem(window_, IDC_BUILD_VALUE), buildText.c_str());
 
     if (result.error.has_value()) {
+        licenseColor_ = RGB(176, 32, 37);
         SetWindowTextW(GetDlgItem(window_, IDC_LICENSE_VALUE), L"Unknown (query failed)");
         SetWindowTextW(GetDlgItem(window_, IDC_PARTIAL_KEY_VALUE), L"Not available");
         SetWindowTextW(GetDlgItem(window_, IDC_CHANNEL_VALUE), L"Unknown");
         const std::wstring errorText = DescribeActivationError(*result.error);
         SetWindowTextW(GetDlgItem(window_, IDC_PROGRESS), errorText.c_str());
+        InvalidateRect(GetDlgItem(window_, IDC_LICENSE_VALUE), nullptr, TRUE);
         return;
     }
 
@@ -352,17 +433,22 @@ void MainWindow::FinishRefresh(SnapshotQueryResult result) {
     switch (result.snapshot.status) {
         case LicenseSummaryStatus::Activated:
             statusText = L"Activated";
+            licenseColor_ = RGB(16, 124, 65);
             break;
         case LicenseSummaryStatus::NotActivated:
             statusText = L"Not activated";
+            licenseColor_ = RGB(176, 32, 37);
             break;
         case LicenseSummaryStatus::Grace:
             statusText = L"Grace period";
+            licenseColor_ = RGB(156, 87, 0);
             break;
         case LicenseSummaryStatus::Notification:
             statusText = L"Notification";
+            licenseColor_ = RGB(156, 87, 0);
             break;
         case LicenseSummaryStatus::Unknown:
+            licenseColor_ = RGB(80, 80, 80);
             break;
     }
     SetWindowTextW(GetDlgItem(window_, IDC_LICENSE_VALUE), statusText);
@@ -378,6 +464,7 @@ void MainWindow::FinishRefresh(SnapshotQueryResult result) {
     SetWindowTextW(GetDlgItem(window_, IDC_PARTIAL_KEY_VALUE), partial.c_str());
     SetWindowTextW(GetDlgItem(window_, IDC_CHANNEL_VALUE), channel.c_str());
     SetWindowTextW(GetDlgItem(window_, IDC_PROGRESS), result.snapshot.reason.c_str());
+    InvalidateRect(GetDlgItem(window_, IDC_LICENSE_VALUE), nullptr, TRUE);
 }
 
 void MainWindow::SetBusy(bool busy) {

@@ -1,6 +1,7 @@
 # CMake build trees and generated files
 /build/
 /out/
+/dist/
 /cmake-build-*/
 CMakeCache.txt
 CMakeFiles/

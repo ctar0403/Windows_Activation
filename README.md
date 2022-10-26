@@ -25,6 +25,20 @@ and any applicable Microsoft program.
 
 ## Build and test
 
+The easiest option is to double-click `build.cmd`. It configures an x64 Release
+build, compiles the application, runs the mock-backed tests, and copies the
+preview executable to `dist\WinActivate.exe`. The script prefers the required
+Visual Studio/CMake toolchain. If only MinGW is installed, it can create a local
+interface-preview build, but that fallback is not a release-validation build.
+
+From a terminal, the equivalent convenient command is:
+
+```bat
+build.cmd Release --no-pause
+```
+
+Use `build.cmd Debug --no-pause` for a Debug build.
+
 From a Visual Studio Developer PowerShell:
 
 ```powershell
@@ -33,7 +47,12 @@ cmake --build --preset release
 ctest --preset release
 ```
 
-The Release application is written beneath `build/vs2022-x64/Release`.
+The CMake Release application is written beneath
+`build/vs2022-x64/Release`. `build.cmd` additionally copies it to `dist`.
+
+The current preview is read-only: status refresh, diagnostics, and the official
+Windows Activation Settings link work, while the two activation buttons remain
+disabled until the elevated helper and authenticated IPC are implemented.
 
 ## Safety and privacy
 
