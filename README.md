@@ -5,13 +5,13 @@ inspecting Windows licensing and activating genuine Windows 10 or Windows 11
 licenses. It does not generate product keys, bypass Microsoft activation, alter
 KMS configuration, or communicate with any third-party service.
 
-[Download WinActivate](https://github.com/ctar0403/Windows_Activation/releases/download/runnable/WinActivate.exe)
-
 > Development status: phases 1–3 are implemented. The application has a native
 > Win32 shell, read-only WMI OS/license discovery, deterministic product
 > selection, and a mock-tested activation workflow. The elevated helper, secure
 > IPC, and real WMI mutation methods are not implemented yet, so this revision
 > intentionally cannot install a key or request activation.
+
+[Download WinActivate](https://github.com/ctar0403/Windows_Activation/releases/download/runnable/WinActivate.exe)
 
 ## Supported systems
 
