@@ -19,9 +19,8 @@ KMS configuration, or communicate with any third-party service.
 - Windows 10 or Windows 11 SDK
 - CMake 3.24 or newer
 
-Windows 10 Home and Pro reached end of support on October 14, 2025. Activation
-does not provide security updates; servicing availability depends on the edition
-and any applicable Microsoft program.
+Activation does not provide security updates; servicing availability depends on the
+edition and any applicable Microsoft program.
 
 ## Build and test
 
